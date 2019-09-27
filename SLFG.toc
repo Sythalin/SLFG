@@ -1,9 +1,0 @@
-## Interface: 11302
-## Title: Simple LFG
-## Author: Sythalin
-## Version: 1.2
-## Notes: LFG/LFM Tool
-## DefaultState: Enabled
-## SavedVariablesPerCharacter: SLFG_Settings, SLFG_Info, SLFG_Options
-
-SLFG.lua
