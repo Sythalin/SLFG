@@ -22,5 +22,11 @@ Slash Commands: /slfg
 **Guild**: Guild channel
 **Empty Box**: Use this to put in your own custom channel (name or number) to send your message to. When ENTER is pressed, it will automatically validate the channel that is typed in. If the text changes to red, then SLFG did not find a valid channel for the info given. The user can still try to click the Post button, but will return an error in the main chat frame.
 
+
+# LDB
+**Left Click**: Open Config
+**Right Click**: Post message
+**Current Message**: Current message that will be posted
+
 # Credit Where It's Due
 Fizzlemizz, erispope - Helping me figure out dropdown menu issues
