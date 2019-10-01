@@ -1,6 +1,7 @@
 -- Simple LFG
 -- Author: Sythalin
 
+local version = "1.4"
 
 SLFG = SLFG or {}
 local SLFG = CreateFrame("FRAME")
@@ -8,8 +9,40 @@ SLFG:RegisterEvent("ADDON_LOADED")
 SLFG:SetScript("OnEvent", function(self, event, ...) if SLFG[event] then return SLFG[event](self, event, ...) end end)
 SLFG:Show()
 
+local dungeons = {
+	"Ragefire Chasm (RFC)",
+	"Wailing Caverns (WC)",
+	"Deadmines (VC)",
+	"Shadowfang Keep (SFK)",
+	"Blackfathom Deeps (BFD)",
+	"Stockade (Stocks)",
+	"Gnomeregan (Gnomer)",
+	"Razorfen Kraul (RFK)",
+	"SM: Graveyard (GY)",
+	"SM: Library (SM: Lib)",
+	"SM: Armory (SM: Armory)",
+	"SM: Cathedral (SM: Cath)",
+	"Razorfen Downs (RFD)",
+	"Uldaman (Ulda)",
+	"Zul'Farrack (ZF)",
+	"Maraudon (Mara)",
+	"Sunken Temple (ST)",
+	"Blackrock Depths (BRD)",
+	"Lower Blackrock Spire (LBRS)",
+	"Upper Blackrock Spire (UBRS)",
+	-- "Dire Maul: East (DM:E)",
+	-- "Dire Maul: West (DM:W)",
+	-- "Dire Maul: North (DM:N)",
+	"Scholomance (Scholo)",
+	"Stratholme: Live (Live Strat)",
+	"Stratholme: Dead (UD Strat)",
+	"Molten Core (MC)",
+	"Onyxia's Lair (Ony)" 
+	}
+		
 function SLFG:ADDON_LOADED(_, addon)
 	if addon ~= "SLFG" then return end
+		
 	-- LOAD/CREATE SETTINGS
 	SLFG_Settings = SLFG_Settings or {
 		["pos"] = {
@@ -42,57 +75,28 @@ function SLFG:ADDON_LOADED(_, addon)
 		["custom"] = false,
 		["needTank"] = false,
 		["needHeal"] = false,
-		["needDPS"] = false
+		["needDPS"] = false,
+		["invite"] = false
 		}
 
 	-- CREATE NEW VARIABLES IF NEEDED
 	SLFG_Info.customChan = SLFG_Info.customChan or ""
 	SLFG_Options.custom = SLFG_Options.custom or false
-	
-	SLFG_DungeonList = {
-		"Ragefire Chasm (RFC)",
-		"Wailing Caverns (WC)",
-		"Deadmines (VC)",
-		"Shadowfang Keep (SFK)",
-		"Blackfathom Deeps (BFD)",
-		"Stockade (Stocks)",
-		"Gnomeregan (Gnomer)",
-		"Razorfen Kraul (RFK)",
-		"SM: Graveyard (GY)",
-		"SM: Library (SM: Lib)",
-		"SM: Armory (SM: Armory)",
-		"SM: Cathedral (SM: Cath)",
-		"Razorfen Downs (SM: RFD)",
-		"Uldaman (Ulda)",
-		"Zul'Farrack (ZF)",
-		"Maraudon (Mara)",
-		"Sunken Temple (ST)",
-		"Blackrock Depths (BRD)",
-		"Lower Blackrock Spire (LBRS)",
-		"Upper Blackrock Spire (UBRS)",
-		-- "Dire Maul: East (DM:E)",
-		-- "Dire Maul: West (DM:W)",
-		-- "Dire Maul: North (DM:N)",
-		"Scholomance (Scholo)",
-		"Stratholme: Live (Live Strat)",
-		"Stratholme: Dead (UD Strat)",
-		"Molten Core (MC)",
-		"Onyxia's Lair (Ony)" }
-	
-	-- Post Macro
-	-- CreateMacro("SLFG Message", "Spell_Holy_PrayerOfHealing", "/script SLFG_PostMsg()", nil)
+	SLFG_Options.invite = SLFG_Options.invite or false
+
+	-- CREATE GUI
+	SLFG_CreateGUI()
 	 
 	-- SLASH COMMANDS
 	SLASH_SLFG1 = "/slfg"
-	SlashCmdList["SLFG"] = SLFG_GUIToggle
+	SlashCmdList["SLFG"] = function() SLFG_GUI:Show() end
 	self:UnregisterEvent("ADDON_LOADED")
 	
 end
 
-	----------------------
-	-- WIDGET TEMPLATES --
-	----------------------
-
+----------------------
+-- WIDGET TEMPLATES --
+----------------------
 function SLFG_CreatePanel(name, parent)
 	panel = CreateFrame("FRAME", parent:GetName().. name, parent)
 		panel:SetSize(parent:GetWidth()*.94, 75)
@@ -102,12 +106,12 @@ function SLFG_CreatePanel(name, parent)
 			})
 	return panel
 end
-
-	-------------------
-	-- MAIN FUNCTION --
-	-------------------
+---------------------
+-- GUI CONSTRUCTOR --
+---------------------
 function SLFG_CreateGUI()
-
+	if SLFG_GUI then SLFG_GUI:Show() return end
+	
 	local mainFrame, postFrame, panel, b, cb, fs, eb
 	
 	----------------
@@ -158,7 +162,7 @@ function SLFG_CreateGUI()
 		e:SetTextInsets(0,0,0,0)
 		e:SetFontObject("GameFontWhite")
 		e:SetTextColor(0,0,0)
-		e:SetText("Simple LFG (1.3)")
+		e:SetText("Simple LFG (".. version.. ")")
 		e:SetJustifyH("CENTER")
 		e:Disable()
 		
@@ -339,9 +343,6 @@ function SLFG_CreateGUI()
 		b:SetScript("OnClick", function()
 			mainFrame:Hide()
 			end)
-		
-
-
 
 	-----------------
 	-- TAB BUTTONS --
@@ -398,31 +399,7 @@ function SLFG_CreateGUI()
 			SLFG_Settings.curPanel = "lfm"
 			SLFG_UpdateMsg()
 			end)
-			
 
---[[
-	b = CreateFrame("BUTTON", mainFrame:GetName().."_OptionButton", mainFrame)
-		b:SetSize(60, 25)
-		 b:SetPoint("LEFT", SLFG_GUI_LFMButton, "RIGHT", 0, 0)
-		 b:SetBackdrop({
-			bgFile = "Interface/CHATFRAME/ChatFrameTab",
-			edgeFile = "Interface/Tooltips/UI-Tooltip-Border",
-			tile = "false",
-			tileSize = 64,
-			edgeSize = 10,
-			insets = {left = 3, right = 3, top = 3, bottom = 3}
-			})
-		--b:SetNormalTexture("Interface/CHATFRAME/ChatFrameTab")
-		b:SetText("Options")	
-		b:RegisterForClicks("LeftButtonUp")
-		b:SetNormalFontObject("GameFontNormalSmall")
-		b:SetHighlightFontObject("GameFontWhiteSmall")
-		b:SetScript("OnClick", function(self)
-			SLFG_GUI_Panel1:Hide()
-			SLFG_GUI_Panel2:Hide()
-			SLFG_GUI_Panel3:Show()
-			end)
-]]		
 	---------------
 	-- LFG PANEL --
 	---------------
@@ -445,7 +422,7 @@ function SLFG_CreateGUI()
 		
 	cb = CreateFrame("CHECKBUTTON", mainFrame:GetName().."_InfoCheck", panel, "OptionsCheckButtonTemplate")
 		cb:SetSize(20,20)
-		cb:SetPoint("TOPLEFT", fs, "BOTTOMLEFT", 0, -12)
+		cb:SetPoint("TOPLEFT", panel, "TOP", 0, -12)
 		cb:SetScript("OnClick", function(self)
 				if self:GetChecked() then
 					SLFG_Options.postCharInfo = true
@@ -463,7 +440,28 @@ function SLFG_CreateGUI()
 				fs:SetJustifyH("RIGHT")
 				fs:SetText("Add Character Info")
 				fs:SetPoint("LEFT", cb, "RIGHT", 0, 0)
+				
+	cb = CreateFrame("CHECKBUTTON", mainFrame:GetName().."_InviteCheck", panel, "OptionsCheckButtonTemplate")
+		cb:SetSize(20,20)
+		cb:SetPoint("TOP", SLFG_GUI_InfoCheck, "BOTTOM", 0, 0)
+		cb:SetScript("OnClick", function(self)
+				if self:GetChecked() then
+					SLFG_Options.invite = true
+				else
+					SLFG_Options.invite = false
+				end
+				SLFG_UpdateMsg()
+			end)
+		if SLFG_Options["invite"] == true then
+			cb:SetChecked(true)
+		end	
 	
+	fs = panel:CreateFontString("SLFG_InviteCheck")
+				fs:SetFontObject("GameFontNormal")
+				fs:SetJustifyH("RIGHT")
+				fs:SetText("Add \"inv\" Tag")
+				fs:SetPoint("LEFT", cb, "RIGHT", 0, 0)
+				
 	---------------
 	-- LFM Panel --
 	---------------
@@ -540,43 +538,15 @@ function SLFG_CreateGUI()
 		--fs:SetWidth(60)
 		fs:SetText("DPS")
 		fs:SetPoint("LEFT", cb, "RIGHT", 5, 0)
-		
-	-------------------
-	-- Options Panel --
-	-------------------
-	
-	--panel = SLFG_CreatePanel("_Panel3", mainFrame)
-	---	panel:SetPoint("TOPLEFT", SLFG_GUI_LFGButton, "BOTTOMLEFT", 0, 0)
-	--	panel:Hide()
-			
-	
-	SLFG_GUIToggle()
 end
 
-	----------------
-	-- GUI TOGGLE --
-	----------------
-function SLFG_GUIToggle(self, button)
-	if not SLFG_GUI then SLFG_CreateGUI() return end
-	if button == "LeftButton" then
-		if SLFG_GUI:IsShown() then 
-			SLFG_GUI:Hide()
-		else
-			SLFG_GUI:Show()
-		end
-	elseif button == "RightButton" then
-		SLFG_PostMsg()
-	end
-end
-
-	--------------------
-	-- DROPDOWN INITS --
-	--------------------
-	
+--------------------
+-- DROPDOWN INITS --
+--------------------
 function SLFG_DungeonMenu_Init(self)
 	local info = UIDropDownMenu_CreateInfo()
-	for i = 1,#SLFG_DungeonList do
-		info.text = SLFG_DungeonList[i]
+	for i = 1,#dungeons do
+		info.text = dungeons[i]
 		info.value = i-1		-- value should start at 0
 		info.func = SLFG_DungeonMenuClick
 		info.owner = self
@@ -584,14 +554,15 @@ function SLFG_DungeonMenu_Init(self)
 		info.icon = nil
 		UIDropDownMenu_AddButton(info)
 	end
+	
+	UIDropDownMenu_SetSelectedName(SLFG_DungeonMenu, SLFG_Info.dungeon) 
+
 end	
-
-
 
 function SLFG_RoleMenu_Init(self)
 	local info = UIDropDownMenu_CreateInfo()
 	
-	info.text = "Tank"
+	info.text = "TANK"
 	info.value = 0
 	info.func = SLFG_RoleMenuClick
 	info.owner = self
@@ -599,7 +570,7 @@ function SLFG_RoleMenu_Init(self)
 	info.icon = nil
 	UIDropDownMenu_AddButton(info)
 	
-	info.text = "Healer"
+	info.text = "HEALER"
 	info.value = 1
 	info.func = SLFG_RoleMenuClick
 	info.owner = self
@@ -615,6 +586,7 @@ function SLFG_RoleMenu_Init(self)
 	info.icon = nil
 	UIDropDownMenu_AddButton(info)
 	
+	UIDropDownMenu_SetSelectedName(SLFG_RoleMenu, SLFG_Info.role) 
 end
 	
 function SLFG_LFMMenu_Init(self)
@@ -629,25 +601,27 @@ function SLFG_LFMMenu_Init(self)
 		info.icon = nil
 		UIDropDownMenu_AddButton(info)
 	end
+	
+	UIDropDownMenu_SetSelectedName(SLFG_LFMMenu,tostring(SLFG_Info.numLFM)) 
 end
 
-	-------------------------------
-	-- DROPDOWN ONCLICK HANDLERS --
-	-------------------------------
-	
+-------------------------------
+-- DROPDOWN ONCLICK HANDLERS --
+-------------------------------	
 function SLFG_DungeonMenuClick(self)
 	local info = UIDropDownMenu_CreateInfo()
 	UIDropDownMenu_SetSelectedValue(self.owner, self.value)
-	SLFG_Info.dungeon = string.match(SLFG_DungeonList[self.value+1], "%((.+)%)")
+	--SLFG_Info.dungeon = string.match(dungeons[self.value+1], "%((.+)%)")
+	SLFG_Info.dungeon = dungeons[self.value+1]
 	SLFG_UpdateMsg()
 end
 	
 function SLFG_RoleMenuClick(self)
 	UIDropDownMenu_SetSelectedValue(self.owner, self.value)
 	if self.value == 0 then
-		SLFG_Info.role = "Tank"
+		SLFG_Info.role = "TANK"
 	elseif self.value == 1 then
-		SLFG_Info.role = "Healer"
+		SLFG_Info.role = "HEALER"
 	elseif self.value == 2 then
 		SLFG_Info.role = "DPS"
 	end
@@ -660,6 +634,42 @@ function SLFG_LFMMenuClick(self)
 	SLFG_UpdateMsg()
 end
 
+----------------------
+-- MESSAGE HANDLING --
+----------------------
+function SLFG_UpdateMsg()
+	local info = SLFG_Info
+	local option = SLFG_Options
+	local dungeon = string.match(info.dungeon, "%((.+)%)")
+	
+	if SLFG_Settings.curPanel == "lfg" then
+		info.msgLFG = info.role.. " "		
+		-- add info to message?
+		if option.postCharInfo == true then 
+			info.msgLFG = info.msgLFG.. UnitLevel("player").. " ".. UnitClass("player").. " "
+		end
+		info.msgLFG = info.msgLFG.. "LFG ".. dungeon
+		-- add inv tag to message?
+		if option.invite == true then
+			info.msgLFG = info.msgLFG.. " inv"
+		end
+		SLFG_MessageBox:SetText(info.msgLFG)
+	else
+		info.msgLFM = "LF".. info.numLFM.. "M "
+		if SLFG_Options.needTank == true then
+			info.msgLFM = info.msgLFM.. "TANK "
+		end
+		if SLFG_Options.needHeal == true then
+			info.msgLFM = info.msgLFM.. "HEALS "
+		end
+		if SLFG_Options.needDPS == true then
+			info.msgLFM = info.msgLFM.. "DPS "
+		end
+		info.msgLFM = info.msgLFM.. dungeon	
+		SLFG_MessageBox:SetText(info.msgLFM)
+	end
+end
+
 function SLFG_ValidateChannel(self)
 	if GetChannelName(tostring(SLFG_Info.customChan)) == 0 then
 		return 1,0,0
@@ -668,38 +678,9 @@ function SLFG_ValidateChannel(self)
 	end
 end
 
-	----------------------
-	-- MESSAGE HANDLING --
-	----------------------
-function SLFG_UpdateMsg()
-	local var = SLFG_Info
-	
-	if SLFG_Settings.curPanel == "lfg" then
-		var.msgLFG = "[".. var.role.. "] "		
-		if SLFG_Options.postCharInfo == true then 
-			var.msgLFG = var.msgLFG.. UnitLevel("player").. " ".. UnitClass("player").. " "
-		end
-		var.msgLFG = var.msgLFG.. "LFG ".. var.dungeon
-		SLFG_MessageBox:SetText(var.msgLFG)
-	else
-		var.msgLFM = "LF".. var.numLFM.. "M "
-		if SLFG_Options.needTank == true then
-			var.msgLFM = var.msgLFM.. "TANK "
-		end
-		if SLFG_Options.needHeal == true then
-			var.msgLFM = var.msgLFM.. "HEALS "
-		end
-		if SLFG_Options.needDPS == true then
-			var.msgLFM = var.msgLFM.. "DPS "
-		end
-		var.msgLFM = var.msgLFM.. var.dungeon	
-		SLFG_MessageBox:SetText(var.msgLFM)
-	end
-end
-
-	-------------
-	-- POSTING --
-	-------------
+------------------
+-- POST HANDLER --
+------------------
 function SLFG_PostMsg()
 	local id = 0
 	local msg = SLFG_MessageBox:GetText()
@@ -727,18 +708,18 @@ function SLFG_PostMsg()
 	end
 end
 
-	----------------
-	-- LDB MODULE --
-	----------------
-	local ldb = LibStub("LibDataBroker-1.1"):NewDataObject("SLFG", {
+----------------
+-- LDB MODULE --
+----------------
+local ldb = LibStub("LibDataBroker-1.1"):NewDataObject("SLFG", {
 	type = "data source",
 	text = "SLFG", 
 	--icon = "Interface/LFGFRAME/BattlenetWorking0",
 	icon = "Interface/Addons/SLFG/icon",
-	OnClick = function(self, button) SLFG_GUIToggle(self, button) end,
+	OnClick = function(self, button) SLFG_LDB_OnClick(self, button) end,
 	OnEnter = function(self) 
 		GameTooltip:SetOwner(self, "ANCHOR_TOP")
-		GameTooltip:AddDoubleLine("SLFG", "1.3");
+		GameTooltip:AddDoubleLine("SLFG", version);
 		GameTooltip:AddLine("|cff00FF00Left Click|r: Toggle Config",1,1,1)
 		GameTooltip:AddLine("|cff00FF00Right Click|r: Post Current Message",1,1,1)
 		GameTooltip:AddLine(" ")
@@ -750,3 +731,18 @@ end
 		GameTooltip:Show()
 		end		
 	})
+	
+-----------------
+-- LDB ONCLICK --
+-----------------
+function SLFG_LDB_OnClick(self, button)
+	if button == "LeftButton" then
+		if SLFG_GUI:IsShown() then 
+			SLFG_GUI:Hide()
+		else
+			SLFG_GUI:Show()
+		end
+	elseif button == "RightButton" then
+		SLFG_PostMsg()
+	end
+end	
